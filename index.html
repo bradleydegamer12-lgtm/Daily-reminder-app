@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>reminder.app</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="manifest" href="manifest.json">
+
+    <style>
+        :root {
+            --bg: #faf6f0;
+            --surface: #ffffff;
+            --surface-alt: #f3ede4;
+            --accent-pink: #ff416c;
+            --accent-purple: #8a2387;
+            --accent-cyan: #00b4db;
+            --accent-green: #11998e;
+            --accent-orange: #ff9900;
+            --text-primary: #1a1a1a;
+            --text-secondary: #6b6560;
+            --text-muted: #a39e97;
+            --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
+            --shadow-md: 0 8px 30px rgba(0,0,0,0.08);
+            --shadow-lg: 0 20px 60px rgba(0,0,0,0.1);
+            --radius: 16px;
+            --radius-lg: 24px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+            opacity: 0.025;
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        /* ── Splash Screen ── */
+        #splash-screen {
+            position: fixed;
+            inset: 0;
+            background: var(--bg);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 5000;
+            animation: splashOut 0.6s ease-in-out 2.4s forwards;
+        }
+
+        .splash-icon {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 20px;
+            opacity: 0;
+            transform: scale(0.4);
+            animation: popIn 1s cubic-bezier(0.68, -0.55, 0.27, 1.55) 0.3s forwards;
+        }
+
+        .splash-text {
+            font-family: 'DM Serif Display', serif;
+            font-size: 2.6rem;
+            background: linear-gradient(135deg, var(--accent-pink), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: slideUp 0.8s ease-out 0.6s forwards;
+        }
+
+        .splash-tagline {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 8px;
+            opacity: 0;
+            animation: fadeIn 0.6s ease-out 1.2s forwards;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        /* ── App Shell ── */
+        .app {
+            width: 100%;
+            max-width: 480px;
+            padding: 0 20px 100px;
+            opacity: 0;
+            animation: fadeIn 0.5s ease-out 2.6s forwards;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 24px 0 20px;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+        }
+
+        .logo-text {
+            font-family: 'DM Serif Display', serif;
+            font-size: 1.5rem;
+            background: linear-gradient(135deg, var(--accent-pink), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .icon-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            border: none;
+            background: var(--surface);
+            box-shadow: var(--shadow-sm);
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .icon-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        /* ── Stats Bar ── */
+        .stats-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .stat-chip {
+            flex: 1;
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            box-shadow: var(--shadow-sm);
+            text-align: center;
+        }
+
+        .stat-chip .num {
+            font-family: 'DM Serif Display', serif;
+            font-size: 1.6rem;
+            display: block;
+        }
+
+        .stat-chip.pink .num { color: var(--accent-pink); }
+        .stat-chip.purple .num { color: var(--accent-purple); }
+        .stat-chip.green .num { color: var(--accent-green); }
+
+        .stat-chip .label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-top: 2px;
+        }
+
+        /* ── Category Tabs ── */
+        .category-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+            scrollbar-width: none;
+        }
+        .category-tabs::-webkit-scrollbar { display: none; }
+
+        .cat-tab {
+            flex-shrink: 0;
+            padding: 8px 18px;
+            border-radius: 30px;
+            border: 1.5px solid #e5ded5;
+            background: transparent;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .cat-tab.active {
+            background: linear-gradient(135deg, var(--accent-pink), var(--accent-purple));
+            color: #fff;
+            border-color: transparent;
+            box-shadow: 0 4px 16px rgba(255,65,108,0.25);
+        }
+
+        .cat-tab:not(.active):hover {
+            border-color: var(--accent-pink);
+            color: var(--accent-pink);
+        }
+
+        /* ── Section Heading ── */
+        .section-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 14px;
+        }
+
+        .section-head h2 {
+            font-family: 'DM Serif Display', serif;
+            font-size: 1.25rem;
+        }
+
+        .section-head span {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* ── Reminder Cards ── */
+        .reminder-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 30px;
+        }
+
+        .reminder-card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            animation: cardIn 0.4s ease-out both;
+        }
+
+        .reminder-card:nth-child(1) { animation-delay: 0.05s; }
+        .reminder-card:nth-child(2) { animation-delay: 0.1s; }
+        .reminder-card:nth-child(3) { animation-delay: 0.15s; }
+        .reminder-card:nth-child(4) { animation-delay: 0.2s; }
+
+        .reminder-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .reminder-card.completed {
+            opacity: 0.5;
+        }
+
+        .reminder-card.completed .rc-title {
+            text-decoration: line-through;
+            color: var(--text-muted);
+        }
+
+        .reminder-card::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 5px;
+        }
+
+        .reminder-card.cat-alarm::before { background: var(--accent-pink); }
+        .reminder-card.cat-task::before { background: var(--accent-cyan); }
+        .reminder-card.cat-calendar::before { background: var(--accent-green); }
+        .reminder-card.cat-focus::before { background: var(--accent-purple); }
+        .reminder-card.cat-other::before { background: var(--accent-orange); }
+
+        .rc-check {
+            flex-shrink: 0;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            border: 2px solid #d5d0c8;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            margin-top: 2px;
+        }
+
+        .rc-check:hover {
+            border-color: var(--accent-pink);
+        }
+
+        .reminder-card.completed .rc-check {
+            background: linear-gradient(135deg, var(--accent-pink), var(--accent-purple));
+            border-color: transparent;
+        }
+
+        .reminder-card.completed .rc-check::after {
+            content: '✓';
+            color: #fff;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+
+        .rc-body {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .rc-title {
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-bottom: 4px;
+            transition: all 0.2s ease;
+        }
+
+        .rc-meta {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .rc-meta .cat-badge {
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .cat-badge.alarm { background: #ffebf0; color: var(--accent-pink); }
+        .cat-badge.task { background: #e0f7fa; color: #00838f; }
+        .cat-badge.calendar { background: #e0f2f1; color: #00796b; }
+        .cat-badge.focus { background: #f3e5f5; color: #7b1fa2; }
+        .cat-badge.other { background: #fff8e1; color: #f57f17; }
+
+        .rc-delete {
+            flex-shrink: 0;
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s ease;
+            opacity: 0;
+        }
+
+        .reminder-card:hover .rc-delete {
+            opacity: 1;
+        }
+
+        .rc-delete:hover {
+            background: #fff0f0;
+            color: #e53935;
+        }
+
+        /* ── Empty State ── */
+        .empty-state {
+            text-align: center;
+            padding: 50px 20px;
+            color: var(--text-muted);
+        }
+
+        .empty-state .empty-icon {
+            font-size: 3rem;
+            margin-bottom: 12px;
+            opacity: 0.4;
+        }
+
+        .empty-state p {
+            font-size: 0.9rem;
+        }
+
+        /* ── FAB (Add Button) ── */
+        .fab {
+            position: fixed;
+            bottom: 28px;
+            right: 50%;
+            transform: translateX(50%);
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(135deg, var(--accent-pink), var(--accent-purple));
+            color: #fff;
+            font-size: 1.6rem;
+            font-weight: 300;
+            cursor: pointer;
+            box-shadow: 0 6px 24px rgba(255,65,108,0.35);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .fab:hover {
+            transform: translateX(50%) scale(1.08);
+            box-shadow: 0 8px 32px rgba(255,65,108,0.45);
+        }
+
+        .fab:active {
+            transform: translateX(50%) scale(0.95);
+        }
+
+        /* ── Modal Overlay ── */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.35);
+            backdrop-filter: blur(6px);
+            z-index: 3000;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.open {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .modal-sheet {
+            background: var(--surface);
+            border-radius: 24px 24px 0 0;
+            width: 100%;
+            max-width: 480px;
+            padding: 28px 24px 40px;
+            transform: translateY(100%);
+            transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+        }
+
+        .modal-overlay.open .modal-sheet {
+            transform: translateY(0);
+        }
+
+        .modal-handle {
+            width: 36px;
+            height: 4px;
+            background: #ddd;
+            border-radius: 2px;
+            margin: 0 auto 20px;
+        }
+
+        .modal-sheet h3 {
+            font-family: 'DM Serif Display', serif;
+            font-size: 1.4rem;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: 12px;
+            border: 1.5px solid #e5ded5;
+            background: var(--bg);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.95rem;
+            color: var(--text-primary);
+            transition: border-color 0.2s ease;
+            outline: none;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: var(--accent-pink);
+        }
+
+        .form-row {
+            display: flex;
+            gap: 12px;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 14px;
+            border-radius: 14px;
+            border: none;
+            background: linear-gradient(135deg, var(--accent-pink), var(--accent-purple));
+            color: #fff;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            box-shadow: 0 4px 16px rgba(255,65,108,0.25);
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 24px rgba(255,65,108,0.35);
+        }
+
+        .submit-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* ── Toast ── */
+        .toast {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--text-primary);
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            z-index: 4000;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* ── Keyframes ── */
+        @keyframes popIn {
+            0% { opacity: 0; transform: scale(0.4); }
+            60% { opacity: 1; transform: scale(1.15); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes slideUp {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+
+        @keyframes splashOut {
+            to { opacity: 0; visibility: hidden; pointer-events: none; }
+        }
+
+        @keyframes cardIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ── Responsive ── */
+        @media (min-width: 500px) {
+            .fab {
+                right: calc(50% - 240px + 20px);
+                transform: none;
+            }
+            .fab:hover {
+                transform: scale(1.08);
+            }
+            .fab:active {
+                transform: scale(0.95);
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Splash -->
+    <div id="splash-screen">
+        <svg class="splash-icon" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <linearGradient id="g1" x1="0" y1="0" x2="64" y2="64">
+                    <stop offset="0%" stop-color="#ff416c"/>
+                    <stop offset="100%" stop-color="#8a2387"/>
+                </linearGradient>
+            </defs>
+            <rect width="64" height="64" rx="16" fill="url(#g1)"/>
+            <path d="M32 16c-1.5 0-2.7 1.2-2.7 2.7v14.6l-6.6 4a2 2 0 102.1 3.4l7.5-4.5A2 2 0 0034 33V18.7c0-1.5-1.2-2.7-2.7-2.7z" fill="white" opacity="0.95"/>
+            <circle cx="32" cy="20" r="2" fill="white"/>
+            <path d="M22 42h20" stroke="white" stroke-width="2.5" stroke-linecap="round" opacity="0.5"/>
+            <path d="M20 46h24" stroke="white" stroke-width="2.5" stroke-linecap="round" opacity="0.3"/>
+        </svg>
+        <h1 class="splash-text">reminder.app</h1>
+        <p class="splash-tagline">Stay organized, stay colorful</p>
+    </div>
+
+    <!-- App -->
+    <div class="app" id="app">
+        <header>
+            <div class="logo-area">
+                <svg class="logo-icon" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="g2" x1="0" y1="0" x2="64" y2="64">
+                            <stop offset="0%" stop-color="#ff416c"/>
+                            <stop offset="100%" stop-color="#8a2387"/>
+                        </linearGradient>
+                    </defs>
+                    <rect width="64" height="64" rx="16" fill="url(#g2)"/>
+                    <path d="M32 16c-1.5 0-2.7 1.2-2.7 2.7v14.6l-6.6 4a2 2 0 102.1 3.4l7.5-4.5A2 2 0 0034 33V18.7c0-1.5-1.2-2.7-2.7-2.7z" fill="white" opacity="0.95"/>
+                    <circle cx="32" cy="20" r="2" fill="white"/>
+                    <path d="M22 42h20" stroke="white" stroke-width="2.5" stroke-linecap="round" opacity="0.5"/>
+                    <path d="M20 46h24" stroke="white" stroke-width="2.5" stroke-linecap="round" opacity="0.3"/>
+                </svg>
+                <span class="logo-text">reminder.app</span>
+            </div>
+            <div class="header-actions">
+                <button class="icon-btn" id="clearCompletedBtn" title="Clear completed">🧹</button>
+            </div>
+        </header>
+
+        <!-- Stats -->
+        <div class="stats-bar">
+            <div class="stat-chip pink">
+                <span class="num" id="statTotal">0</span>
+                <div class="label">Active</div>
+            </div>
+            <div class="stat-chip purple">
+                <span class="num" id="statDone">0</span>
+                <div class="label">Completed</div>
+            </div>
+            <div class="stat-chip green">
+                <span class="num" id="statStreak">0</span>
+                <div class="label">Today</div>
+            </div>
+        </div>
+
+        <!-- Category Tabs -->
+        <div class="category-tabs" id="categoryTabs">
+            <button class="cat-tab active" data-cat="all">All</button>
+            <button class="cat-tab" data-cat="alarm">Alarms</button>
+            <button class="cat-tab" data-cat="task">Tasks</button>
+            <button class="cat-tab" data-cat="calendar">Calendar</button>
+            <button class="cat-tab" data-cat="focus">Focus</button>
+        </div>
+
+        <!-- Reminder List -->
+        <div class="section-head">
+            <h2 id="sectionTitle">All Reminders</h2>
+            <span id="sectionCount"></span>
+        </div>
+        <div class="reminder-list" id="reminderList"></div>
+    </div>
+
+    <!-- FAB -->
+    <button class="fab" id="addBtn" title="Add reminder">+</button>
+
+    <!-- Add Modal -->
+    <div class="modal-overlay" id="addModal">
+        <div class="modal-sheet">
+            <div class="modal-handle"></div>
+            <h3>New Reminder</h3>
+            <div class="form-group">
+                <label>What do you need to remember?</label>
+                <input type="text" id="inputTitle" placeholder="e.g. Call mom at 5pm" maxlength="100" autocomplete="off">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Category</label>
+                    <select id="inputCategory">
+                        <option value="alarm">Alarm</option>
+                        <option value="task" selected>Task</option>
+                        <option value="calendar">Calendar</option>
+                        <option value="focus">Focus</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" id="inputDate">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Time</label>
+                    <input type="time" id="inputTime">
+                </div>
+                <div class="form-group">
+                    <label>Priority</label>
+                    <select id="inputPriority">
+                        <option value="low">Low</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="high">High</option>
+                    </select>
+                </div>
+            </div>
+            <button class="submit-btn" id="submitBtn">Add Reminder</button>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // ── Data Layer ──
+        const STORAGE_KEY = 'reminderApp_reminders';
+
+        function loadReminders() {
+            try {
+                return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+            } catch { return []; }
+        }
+
+        function saveReminders(reminders) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(reminders));
+        }
+
+        let reminders = loadReminders();
+        let activeFilter = 'all';
+
+        // ── Elements ──
+        const listEl = document.getElementById('reminderList');
+        const addBtn = document.getElementById('addBtn');
+        const addModal = document.getElementById('addModal');
+        const submitBtn = document.getElementById('submitBtn');
+        const inputTitle = document.getElementById('inputTitle');
+        const inputCategory = document.getElementById('inputCategory');
+        const inputDate = document.getElementById('inputDate');
+        const inputTime = document.getElementById('inputTime');
+        const inputPriority = document.getElementById('inputPriority');
+        const categoryTabs = document.getElementById('categoryTabs');
+        const sectionTitle = document.getElementById('sectionTitle');
+        const sectionCount = document.getElementById('sectionCount');
+        const statTotal = document.getElementById('statTotal');
+        const statDone = document.getElementById('statDone');
+        const statStreak = document.getElementById('statStreak');
+        const clearCompletedBtn = document.getElementById('clearCompletedBtn');
+        const toastEl = document.getElementById('toast');
+
+        // ── Set default date to today ──
+        const today = new Date();
+        inputDate.value = today.toISOString().split('T')[0];
+
+        // ── Render ──
+        function render() {
+            const filtered = activeFilter === 'all'
+                ? reminders
+                : reminders.filter(r => r.category === activeFilter);
+
+            const active = reminders.filter(r => !r.completed);
+            const done = reminders.filter(r => r.completed);
+            const todayStr = new Date().toISOString().split('T')[0];
+            const todayReminders = reminders.filter(r => r.date === todayStr);
+
+            statTotal.textContent = active.length;
+            statDone.textContent = done.length;
+            statStreak.textContent = todayReminders.length;
+
+            const catNames = { all: 'All Reminders', alarm: 'Alarms', task: 'Tasks', calendar: 'Calendar', focus: 'Focus' };
+            sectionTitle.textContent = catNames[activeFilter] || 'Reminders';
+            sectionCount.textContent = `${filtered.length} item${filtered.length !== 1 ? 's' : ''}`;
+
+            if (filtered.length === 0) {
+                listEl.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">📭</div>
+                        <p>No reminders here yet.<br>Tap <strong>+</strong> to add one!</p>
+                    </div>`;
+                return;
+            }
+
+            // Sort: incomplete first (by date/time), then completed
+            const sorted = [...filtered].sort((a, b) => {
+                if (a.completed !== b.completed) return a.completed ? 1 : -1;
+                const da = (a.date || '9999') + (a.time || '99:99');
+                const db = (b.date || '9999') + (b.time || '99:99');
+                return da.localeCompare(db);
+            });
+
+            listEl.innerHTML = sorted.map((r, i) => `
+                <div class="reminder-card cat-${r.category} ${r.completed ? 'completed' : ''}"
+                     data-id="${r.id}" style="animation-delay: ${i * 0.04}s">
+                    <div class="rc-check" data-action="toggle" data-id="${r.id}"></div>
+                    <div class="rc-body">
+                        <div class="rc-title">${escapeHtml(r.title)}</div>
+                        <div class="rc-meta">
+                            <span class="cat-badge ${r.category}">${r.category}</span>
+                            ${r.date ? `<span>${formatDate(r.date)}</span>` : ''}
+                            ${r.time ? `<span>${formatTime(r.time)}</span>` : ''}
+                            <span>${priorityLabel(r.priority)}</span>
+                        </div>
+                    </div>
+                    <button class="rc-delete" data-action="delete" data-id="${r.id}" title="Delete">✕</button>
+                </div>
+            `).join('');
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            const d = new Date(dateStr + 'T00:00:00');
+            const todayStr = new Date().toISOString().split('T')[0];
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const tomorrowStr = tomorrow.toISOString().split('T')[0];
+            if (dateStr === todayStr) return 'Today';
+            if (dateStr === tomorrowStr) return 'Tomorrow';
+            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+
+        function formatTime(timeStr) {
+            if (!timeStr) return '';
+            const [h, m] = timeStr.split(':').map(Number);
+            const ampm = h >= 12 ? 'PM' : 'AM';
+            const h12 = h % 12 || 12;
+            return `${h12}:${m.toString().padStart(2, '0')} ${ampm}`;
+        }
+
+        function priorityLabel(p) {
+            if (p === 'high') return '🔴 High';
+            if (p === 'medium') return '🟡 Med';
+            return '⚪ Low';
+        }
+
+        // ── Add Reminder ──
+        function openModal() {
+            addModal.classList.add('open');
+            setTimeout(() => inputTitle.focus(), 400);
+        }
+
+        function closeModal() {
+            addModal.classList.remove('open');
+            inputTitle.value = '';
+            inputDate.value = new Date().toISOString().split('T')[0];
+            inputTime.value = '';
+            inputCategory.value = 'task';
+            inputPriority.value = 'medium';
+        }
+
+        function addReminder() {
+            const title = inputTitle.value.trim();
+            if (!title) {
+                showToast('Please enter a reminder title');
+                inputTitle.focus();
+                return;
+            }
+
+            const reminder = {
+                id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+                title,
+                category: inputCategory.value,
+                date: inputDate.value || null,
+                time: inputTime.value || null,
+                priority: inputPriority.value,
+                completed: false,
+                createdAt: new Date().toISOString()
+            };
+
+            reminders.unshift(reminder);
+            saveReminders(reminders);
+            render();
+            closeModal();
+            showToast('Reminder added');
+
+            // Schedule notification if time is set
+            if (reminder.date && reminder.time) {
+                scheduleNotification(reminder);
+            }
+        }
+
+        // ── Toggle / Delete ──
+        listEl.addEventListener('click', (e) => {
+            const actionEl = e.target.closest('[data-action]');
+            if (!actionEl) return;
+
+            const id = actionEl.dataset.id;
+            const action = actionEl.dataset.action;
+
+            if (action === 'toggle') {
+                const r = reminders.find(x => x.id === id);
+                if (r) {
+                    r.completed = !r.completed;
+                    saveReminders(reminders);
+                    render();
+                    if (r.completed) showToast('Completed!');
+                }
+            }
+
+            if (action === 'delete') {
+                reminders = reminders.filter(x => x.id !== id);
+                saveReminders(reminders);
+                render();
+                showToast('Reminder deleted');
+            }
+        });
+
+        // ── Category Filter ──
+        categoryTabs.addEventListener('click', (e) => {
+            const tab = e.target.closest('.cat-tab');
+            if (!tab) return;
+            categoryTabs.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            activeFilter = tab.dataset.cat;
+            render();
+        });
+
+        // ── Clear Completed ──
+        clearCompletedBtn.addEventListener('click', () => {
+            const count = reminders.filter(r => r.completed).length;
+            if (count === 0) {
+                showToast('No completed reminders');
+                return;
+            }
+            reminders = reminders.filter(r => !r.completed);
+            saveReminders(reminders);
+            render();
+            showToast(`Cleared ${count} completed`);
+        });
+
+        // ── Modal Events ──
+        addBtn.addEventListener('click', openModal);
+        submitBtn.addEventListener('click', addReminder);
+
+        addModal.addEventListener('click', (e) => {
+            if (e.target === addModal) closeModal();
+        });
+
+        inputTitle.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') addReminder();
+        });
+
+        // ── Notifications ──
+        function requestNotificationPermission() {
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission();
+            }
+        }
+
+        function scheduleNotification(reminder) {
+            if (!('Notification' in window) || Notification.permission !== 'granted') return;
+
+            const target = new Date(`${reminder.date}T${reminder.time}:00`);
+            const now = new Date();
+            const diff = target - now;
+
+            if (diff > 0 && diff < 86400000) { // within 24 hours
+                setTimeout(() => {
+                    new Notification('reminder.app', {
+                        body: reminder.title,
+                        icon: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="%23ff416c"/><path d="M32 16c-1.5 0-2.7 1.2-2.7 2.7v14.6l-6.6 4a2 2 0 102.1 3.4l7.5-4.5A2 2 0 0034 33V18.7c0-1.5-1.2-2.7-2.7-2.7z" fill="white" opacity="0.95"/></svg>'),
+                        tag: reminder.id
+                    });
+                }, diff);
+            }
+        }
+
+        // ── Toast ──
+        let toastTimer;
+        function showToast(msg) {
+            toastEl.textContent = msg;
+            toastEl.classList.add('show');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2200);
+        }
+
+        // ── Init ──
+        requestNotificationPermission();
+        render();
+
+        // Re-schedule notifications for existing reminders on load
+        reminders.filter(r => !r.completed && r.date && r.time).forEach(scheduleNotification);
+    </script>
+</body>
+  </html>
