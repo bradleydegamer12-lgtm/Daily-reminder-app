@@ -377,13 +377,126 @@
 
 <script>
 // ═══════════════════════════════════════════════
-//  AUDIO EFFECTS (Web Audio API - no files needed)
+//  AUDIO FX
 // ═══════════════════════════════════════════════
 const AudioFX = {
     ctx: null,
-    init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
+    init() {
+        if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+    },
 
-    // Ascending "ding" when adding
+    // Category tab sounds
+    tabAll() {
+        this.init(); const c = this.ctx, now = c.currentTime;
+        const o = c.createOscillator(), g = c.createGain();
+        o.type = 'sine'; o.frequency.setValueAtTime(800, now);
+        o.frequency.exponentialRampToValueAtTime(600, now + 0.08);
+        g.gain.setValueAtTime(0.12, now);
+        g.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+        o.connect(g).connect(c.destination); o.start(now); o.stop(now + 0.13);
+    },
+
+    tabAlarm() {
+        this.init(); const c = this.ctx, now = c.currentTime;
+        [1200, 2400, 3600].forEach((freq, i) => {
+            const o = c.createOscillator(), g = c.createGain();
+            o.type = 'sine'; o.frequency.value = freq;
+            g.gain.setValueAtTime(0, now);
+            g.gain.linearRampToValueAtTime(0.08 / (i + 1), now + 0.005);
+            g.gain.exponentialRampToValueAtTime(0.001, now + 0.5 - i * 0.1);
+            o.connect(g).connect(c.destination); o.start(now); o.stop(now + 0.55);
+        });
+    },
+
+    tabTask() {
+        this.init(); const c = this.ctx, now = c.currentTime;
+        const o1 = c.createOscillator(), g1 = c.createGain();
+        o1.type = 'square'; o1.frequency.setValueAtTime(1500, now);
+        o1.frequency.exponentialRampToValueAtTime(300, now + 0.02);
+        g1.gain.setValueAtTime(0.15, now);
+        g1.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+        o1.connect(g1).connect(c.destination); o1.start(now); o1.stop(now + 0.05);
+        const o2 = c.createOscillator(), g2 = c.createGain();
+        o2.type = 'sine'; o2.frequency.setValueAtTime(400, now + 0.01);
+        o2.frequency.exponentialRampToValueAtTime(150, now + 0.06);
+        g2.gain.setValueAtTime(0, now); g2.gain.linearRampToValueAtTime(0.1, now + 0.01);
+        g2.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+        o2.connect(g2).connect(c.destination); o2.start(now + 0.01); o2.stop(now + 0.1);
+    },
+
+    tabCalendar() {
+        this.init(); const c = this.ctx, now = c.currentTime;
+        const bufferSize = c.sampleRate * 0.15;
+        const buffer = c.createBuffer(1, bufferSize, c.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * 0.5;
+        const noise = c.createBufferSource(); noise.buffer = buffer;
+        const filter = c.createBiquadFilter(); filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(800, now);
+        filter.frequency.linearRampToValueAtTime(3000, now + 0.06);
+        filter.frequency.linearRampToValueAtTime(1200, now + 0.12);
+        filter.Q.value = 2;
+        const g = c.createGain(); g.gain.setValueAtTime(0, now);
+        g.gain.linearRampToValueAtTime(0.12, now + 0.015);
+        g.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+        noise.connect(filter).connect(g).connect(c.destination);
+        noise.start(now); noise.stop(now + 0.16);
+        const o = c.createOscillator(), g2 = c.createGain();
+        o.type = 'sine'; o.frequency.value = 660;
+        g2.gain.setValueAtTime(0, now + 0.04);
+        g2.gain.linearRampToValueAtTime(0.04, now + 0.06);
+        g2.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+        o.connect(g2).connect(c.destination); o.start(now + 0.04); o.stop(now + 0.22);
+    },
+
+    tabFocus() {
+        this.init(); const c = this.ctx, now = c.currentTime;
+        [220, 330, 440, 660].forEach((freq, i) => {
+            const o = c.createOscillator(), g = c.createGain();
+            o.type = 'sine'; o.frequency.value = freq;
+            const vol = 0.06 / (i + 1);
+            g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(vol, now + 0.02);
+            g.gain.setValueAtTime(vol, now + 0.15);
+            g.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+            o.connect(g).connect(c.destination); o.start(now); o.stop(now + 0.85);
+        });
+    },
+
+    // Stat chip sounds
+    statActive() {
+        this.init(); const c = this.ctx, now = c.currentTime;
+        const o = c.createOscillator(), g = c.createGain();
+        o.type = 'triangle'; o.frequency.setValueAtTime(880, now);
+        o.frequency.exponentialRampToValueAtTime(660, now + 0.1);
+        g.gain.setValueAtTime(0.1, now);
+        g.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+        o.connect(g).connect(c.destination); o.start(now); o.stop(now + 0.16);
+    },
+
+    statDone() {
+        this.init(); const c = this.ctx, now = c.currentTime;
+        [523.25, 659.25].forEach((freq, i) => {
+            const o = c.createOscillator(), g = c.createGain();
+            o.type = 'sine'; o.frequency.value = freq;
+            g.gain.setValueAtTime(0, now + i * 0.08);
+            g.gain.linearRampToValueAtTime(0.08, now + i * 0.08 + 0.01);
+            g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.2);
+            o.connect(g).connect(c.destination);
+            o.start(now + i * 0.08); o.stop(now + i * 0.08 + 0.22);
+        });
+    },
+
+    statToday() {
+        this.init(); const c = this.ctx, now = c.currentTime;
+        const o = c.createOscillator(), g = c.createGain();
+        o.type = 'sine'; o.frequency.value = 440;
+        g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(0.08, now + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+        o.connect(g).connect(c.destination); o.start(now); o.stop(now + 0.26);
+    },
+
+    // Action sounds
     add() {
         this.init(); const c = this.ctx, now = c.currentTime;
         [523.25, 659.25, 783.99].forEach((freq, i) => {
@@ -397,56 +510,83 @@ const AudioFX = {
         });
     },
 
-    // Cheerful arpeggio when completing
     complete() {
         this.init(); const c = this.ctx, now = c.currentTime;
         [392, 523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
             const o = c.createOscillator(), g = c.createGain();
             o.type = 'triangle'; o.frequency.value = freq;
             g.gain.setValueAtTime(0, now + i * 0.06);
-            g.gain.linearRampToValueAtTime(0.15, now + i * 0.06 + 0.015);
+            g.gain.linearRampToValueAtTime(0.13, now + i * 0.06 + 0.015);
             g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.06 + 0.35);
             o.connect(g).connect(c.destination);
             o.start(now + i * 0.06); o.stop(now + i * 0.06 + 0.4);
         });
     },
 
-    // Soft descending tone when deleting
     remove() {
         this.init(); const c = this.ctx, now = c.currentTime;
         const o = c.createOscillator(), g = c.createGain();
-        o.type = 'sine'; o.frequency.setValueAtTime(400, now);
-        o.frequency.exponentialRampToValueAtTime(180, now + 0.2);
-        g.gain.setValueAtTime(0.1, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
-        o.connect(g).connect(c.destination); o.start(now); o.stop(now + 0.3);
+        o.type = 'sine'; o.frequency.setValueAtTime(450, now);
+        o.frequency.exponentialRampToValueAtTime(150, now + 0.2);
+        g.gain.setValueAtTime(0.1, now);
+        g.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+        o.connect(g).connect(c.destination); o.start(now); o.stop(now + 0.28);
     },
 
-    // Subtle click for UI interactions
-    tap() {
-        this.init(); const c = this.ctx, now = c.currentTime;
-        const o = c.createOscillator(), g = c.createGain();
-        o.type = 'sine'; o.frequency.value = 1200;
-        g.gain.setValueAtTime(0.06, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
-        o.connect(g).connect(c.destination); o.start(now); o.stop(now + 0.07);
-    },
-
-    // Voice activation whoosh
     activate() {
         this.init(); const c = this.ctx, now = c.currentTime;
         const o = c.createOscillator(), g = c.createGain(), f = c.createBiquadFilter();
         o.type = 'sawtooth'; o.frequency.setValueAtTime(200, now);
-        o.frequency.exponentialRampToValueAtTime(800, now + 0.15);
-        o.frequency.exponentialRampToValueAtTime(300, now + 0.3);
+        o.frequency.exponentialRampToValueAtTime(900, now + 0.12);
+        o.frequency.exponentialRampToValueAtTime(350, now + 0.28);
         f.type = 'lowpass'; f.frequency.value = 1200;
-        g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(0.06, now + 0.05);
+        g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(0.06, now + 0.04);
         g.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
         o.connect(f).connect(g).connect(c.destination); o.start(now); o.stop(now + 0.35);
     },
 
-    // Error / no match
+    fab() {
+        this.init(); const c = this.ctx, now = c.currentTime;
+        const o = c.createOscillator(), g = c.createGain();
+        o.type = 'sine'; o.frequency.setValueAtTime(400, now);
+        o.frequency.exponentialRampToValueAtTime(1200, now + 0.08);
+        g.gain.setValueAtTime(0.12, now);
+        g.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+        o.connect(g).connect(c.destination); o.start(now); o.stop(now + 0.14);
+        const o2 = c.createOscillator(), g2 = c.createGain();
+        o2.type = 'sine'; o2.frequency.value = 1400;
+        g2.gain.setValueAtTime(0, now + 0.07);
+        g2.gain.linearRampToValueAtTime(0.08, now + 0.08);
+        g2.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+        o2.connect(g2).connect(c.destination); o2.start(now + 0.07); o2.stop(now + 0.16);
+    },
+
+    theme() {
+        this.init(); const c = this.ctx, now = c.currentTime;
+        const o = c.createOscillator(), g = c.createGain(), f = c.createBiquadFilter();
+        o.type = 'triangle'; o.frequency.setValueAtTime(300, now);
+        o.frequency.linearRampToValueAtTime(600, now + 0.15);
+        o.frequency.linearRampToValueAtTime(400, now + 0.3);
+        f.type = 'lowpass'; f.frequency.setValueAtTime(400, now);
+        f.frequency.linearRampToValueAtTime(2000, now + 0.15);
+        f.frequency.linearRampToValueAtTime(800, now + 0.3);
+        g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(0.08, now + 0.04);
+        g.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+        o.connect(f).connect(g).connect(c.destination); o.start(now); o.stop(now + 0.38);
+    },
+
+    tap() {
+        this.init(); const c = this.ctx, now = c.currentTime;
+        const o = c.createOscillator(), g = c.createGain();
+        o.type = 'sine'; o.frequency.value = 1000;
+        g.gain.setValueAtTime(0.06, now);
+        g.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+        o.connect(g).connect(c.destination); o.start(now); o.stop(now + 0.06);
+    },
+
     error() {
         this.init(); const c = this.ctx, now = c.currentTime;
-        [300, 250].forEach((freq, i) => {
+        [300, 240].forEach((freq, i) => {
             const o = c.createOscillator(), g = c.createGain();
             o.type = 'square'; o.frequency.value = freq;
             g.gain.setValueAtTime(0, now + i * 0.12);
@@ -455,6 +595,27 @@ const AudioFX = {
             o.connect(g).connect(c.destination);
             o.start(now + i * 0.12); o.stop(now + i * 0.12 + 0.2);
         });
+    }
+};
+
+// Tab sound mapping
+const tabSounds = {
+    all: () => AudioFX.tabAll(),
+    alarm: () => AudioFX.tabAlarm(),
+    task: () => AudioFX.tabTask(),
+    calendar: () => AudioFX.tabCalendar(),
+    focus: () => AudioFX.tabFocus()
+};
+
+// Stat chip clicks
+document.querySelectorAll('.stat-chip').forEach(chip => {
+    chip.style.cursor = 'pointer';
+    chip.addEventListener('click', () => {
+        if (chip.classList.contains('pink')) AudioFX.statActive();
+        else if (chip.classList.contains('purple')) AudioFX.statDone();
+        else if (chip.classList.contains('green')) AudioFX.statToday();
+    });
+});
     }
 };
 
